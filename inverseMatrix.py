@@ -31,14 +31,12 @@ def determinant(matrix):
 
     return det
 
-
+# 행렬식 이용 역행렬 계산
 def inverse_by_determinant(matrix):
-
     n = len(matrix) # 행렬의 크기
     det = determinant(matrix) # 행렬식 계산
 
-    # 행렬식이 0인 경우 역행렬 존재 불가, 예외 처리
-    if det == 0:
+    if det == 0: # 행렬식이 0인 경우 역행렬 존재 불가, 예외 처리
         raise ValueError("det=0, 역행렬이 존재하지 않음")
 
     # 여인수 행렬
@@ -60,8 +58,7 @@ def inverse_by_determinant(matrix):
             """
 
             # 여인수 계산
-            row.append(((-1)**(r+c)) * determinant(minor))
-            
+            row.append(((-1)**(r+c)) * determinant(minor)) 
         cofactors.append(row)
 
     # 수반행렬 = cofactors의 전치행렬
@@ -88,13 +85,11 @@ def inverse_by_determinant(matrix):
 
     return inverse_matrix
 
-
-
+# 가우스 조단 역행렬 계산
 def inverse_by_gauss_jordan(matrix):
     n = len(matrix) # 행렬의 크기
 
-    # 확장 행렬로 변환 [A | I]
-    # 원본 행렬 오른쪽에 단위행렬을 붙임
+    # 확장 행렬로 변환 [A | I] # 원본 행렬 오른쪽에 단위행렬을 붙임
     m = [row + [float(i == j) for j in range(n)] for i, row in enumerate(matrix)]
     """
     m = []
@@ -108,25 +103,42 @@ def inverse_by_gauss_jordan(matrix):
         m.append(new_row)
     """
 
+    row_ops = 0  # 기본행연산 횟수 카운터
+
     # 피봇을 1로, 다른 행은 0으로 변환(기약행사다리꼴)
     for i in range(n):
-
         pivot = m[i][i]
 
+        # pivot이 0이면 아래 행 탐색 (부분 피봇팅)
         if pivot == 0:
-            raise ValueError("pivot=0, 역행렬이 존재하지 않음")
+            swapped = False
+            for k in range(i + 1, n):
+                if m[k][i] != 0:  # 교환 가능한 행
+                    m[i], m[k] = m[k], m[i]
+                    row_ops += 1  # 행 교환 연산 1회
+                    print(f"pivot이 0이므로 행{i}과 행{k} 교환")
+                    swapped = True
+                    pivot = m[i][i]  # 새로운 pivot 갱신
+                    break
+            if not swapped:
+                # 아래 행 모두 0이면 → det=0 → 역행렬 존재 X
+                raise ValueError(f"모든 pivot 후보가 0 → det=0, 역행렬이 존재하지 않음 (열 {i})")
+
         
         # 피봇을 1로 변환
         for j in range(2*n):
             m[i][j] /= pivot
+        row_ops += 1  # 한 행의 스칼라배 연산 -> 기본행연산 1회
 
         # 피봇과 같은 열의 다른 원소를 0으로 변환
         for k in range(n):
-
             if k != i: # 자신의 행 제외
                 factor = m[k][i]
-                for j in range(2*n):
-                    m[k][j] -= factor * m[i][j]
+
+                if factor != 0:  # 불필요한 연산 제외
+                    for j in range(2*n):
+                        m[k][j] -= factor * m[i][j]
+                    row_ops += 1  # 한 행에 다른 행의 배수를 더함
 
     # 역행렬 계산(오른쪽 행렬)
     inverse_matrix = [row[n:] for row in m]
@@ -139,45 +151,88 @@ def inverse_by_gauss_jordan(matrix):
         inverse_matrix.append(new_row)
     """
 
+    print(f"총 기본행연산 횟수: {row_ops}회")
     return inverse_matrix
 
+# 두 행렬이 동일한지 결과 비교
+def compare_matrices(A, B, tol=1e-6):
+    # tol: 부동소수점 오차 허용 범위
+    n = len(A)
+    for i in range(n):
+        for j in range(n):
+            if abs(A[i][j] - B[i][j]) > tol:
+                return False
+    return True
 
-###### 행렬 입력 
+###### 프로그램
 
-# 정방행렬의 크기 입력
-n = int(input("정방행렬의 크기 n을 입력하세요: "))
+test_count = 0  # 현재 테스트 횟수
+matrix_list = []  # 테스트한 행렬 저장 리스트
+
+while True:
+    print("\n==============================")
+    print(f"[테스트 #{test_count + 1}] 새로운 행렬 입력")
+    print("==============================")
+
+    n = int(input("정방행렬의 크기 n을 입력하세요 (0 입력 시 종료): "))
+    if n == 0:
+        print("\n프로그램을 종료합니다.")
+        print(f"총 {test_count}개의 테스트를 진행했습니다.")
+        break
+
+    # 행렬 원소 입력
+    m = []
+    for _ in range(n):
+        print("행렬의 각 행을 입력하세요:")
+        m.append(list(map(float, input().split())))
+    # m = [list(map(float, input().split())) for _ in range(n)]
+
+    # 입력한 행렬 저장
+    matrix_list.append(m)
+    test_count += 1
+
+    # 행렬식 출력
+    print("\n[1] 행렬식 (Determinant):")
+    print(determinant(m))
 
 
-# 행렬 원소 입력
-m = []
-for _ in range(n):
-    print("행렬의 각 행을 입력하세요:")
-    m.append(list(map(float, input().split())))
-# m = [list(map(float, input().split())) for _ in range(n)]
+    # 행렬식 기반 역행렬 계산
+    print("\n[2] 행렬식 이용 역행렬:")
+    A = None
+    try: # 예외를 잡기 위해 try 구문 사용
+
+        A = inverse_by_determinant(m)
+        for row in A:  print(row)
+
+    except ValueError as e:
+        print(e)
 
 
-# 행렬식 출력
-print("\n[1] 행렬식 (Determinant):")
-print(determinant(m))
+    # 가우스-조던 소거법 기반 역행렬 계산
+    print("\n[3] 가우스-조던 소거법 이용 역행렬:")
+    B = None
+    try:
 
+        B = inverse_by_gauss_jordan(m)
+        for row in B:  print(row)
 
-# 행렬식 기반 역행렬 계산
-print("\n[2] 행렬식 이용 역행렬:")
-try: # 예외를 잡기 위해 try 구문 사용
+    except ValueError as e:
+        print(e)
 
-    matrix = inverse_by_determinant(m)
-    for row in matrix:  print(row)
+    # A, B의 결과 비교
+    print("\n[4] 결과 비교:")
+    if A is not None and B is not None:
+        if (compare_matrices(A,B)):
+            print("\n역행렬 계산 결과가 같습니다.")
+        else:
+            print("\n역행렬 계산 결과가 다릅니다.")
+    else:
+        print("\n비교할 역행렬이 존재하지 않습니다.")
 
-except ValueError as e:
-    print(e)
-
-
-# 가우스-조던 소거법 기반 역행렬 계산
-print("\n[3] 가우스-조던 소거법 이용 역행렬:")
-try:
-
-    matrix = inverse_by_gauss_jordan(m)
-    for row in matrix:  print(row)
-
-except ValueError as e:
-    print(e)
+    
+    # 다음 테스트 진행 여부
+    next_test = input("\n다른 행렬을 테스트하시겠습니까? (y/n): ").lower()
+    if next_test != 'y':
+        print("\n프로그램을 종료합니다.")
+        print(f"총 {test_count}개의 테스트를 진행했습니다.")
+        break
